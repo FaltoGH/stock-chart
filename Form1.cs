@@ -19,6 +19,9 @@ namespace WindowsFormsApp1
         const byte L = 1;
         const byte O = 2;
         const byte C = 3;
+        public bool preferflag = true;
+
+
         public Form1()
         {
             InitializeComponent();
@@ -178,6 +181,7 @@ namespace WindowsFormsApp1
             vPoint.ToolTip = pPoint.ToolTip = $"일자: {date}\n시가: {o:N0}\n고가: {h:N0}\n저가: {l:N0}\n종가: {c:N0}\n거래량: {v:N0}";
         }
 
+
         /// <summary>
         /// Call me when all points were added.
         /// </summary>
@@ -195,7 +199,10 @@ namespace WindowsFormsApp1
             MovingAverage(Series["60"].Points, PPoints, 60);
             MovingAverage(Series["120"].Points, PPoints, 120);
             UpdateYViews();
-            SetXViewSizeSafely(preferredXViewSize);
+            if (preferflag)
+            {
+                SetXViewSizeSafely(preferredXViewSize);
+            }
         }
 
         ChartArea FindChartArea(Point point)
@@ -361,6 +368,26 @@ namespace WindowsFormsApp1
             {
                 chartArea.CursorX.SetCursorPixelPosition(location, true);
                 chartArea.CursorY.SetCursorPixelPosition(location, true);
+                double ypos = chartArea.CursorY.Position;
+                if (double.IsNaN(ypos))
+                {
+                    yLabel.Visible = false;
+                }
+                else
+                {
+                    yLabel.Text = ypos.ToString("N0");
+                    yLabel.Top = chart1.Top + e.Y - yLabel.Height / 2;
+                    yLabel.Visible = true;
+
+                    ElementPosition pos = chartArea.Position;
+                    ElementPosition inpos = chartArea.InnerPlotPosition;
+                    float areaX = pos.X * chart1.Width / 100;
+                    float areaWidth = pos.Width * chart1.Width / 100;
+                    float inX = inpos.X * areaWidth / 100;
+                    float inWidth = inpos.Width * areaWidth / 100;
+                    float plotX = areaX + inX;
+                    yLabel.Left = chart1.Left + (int)(plotX + inWidth) + 9;
+                }
             }
             else
                 HideCursors();
@@ -373,6 +400,7 @@ namespace WindowsFormsApp1
                 chartArea.CursorX.SetCursorPosition(double.NegativeInfinity);
                 chartArea.CursorY.SetCursorPosition(double.NegativeInfinity);
             }
+            yLabel.Visible = false;
         }
 
         private void chart1_MouseLeave(object sender, EventArgs e)
