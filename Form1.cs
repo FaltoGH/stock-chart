@@ -55,9 +55,9 @@ namespace WindowsFormsApp1
         }
 
 
-        static void Assert(bool x)
+        static void Assert(bool x, string msg)
         {
-            if (!x) throw new Exception();
+            if (!x) throw new Exception("Assertion failed: " + msg);
         }
 
         SeriesCollection Series => chart1.Series;
@@ -116,8 +116,8 @@ namespace WindowsFormsApp1
 
         void SetXViewPosSize(double xviewpos, int xviewsize)
         {
-            Assert(xviewpos >= AxisXMin);
-            Assert(xviewpos + xviewsize <= AxisXMax);
+            Assert(xviewpos >= AxisXMin, $"xviewpos {xviewpos} >= AxisXMin {AxisXMin}");
+            Assert(xviewpos + xviewsize <= AxisXMax, $"xviewpos {xviewpos} + xviewsize {xviewsize} <= AxisXMax {AxisXMax}");
             XView.Position = xviewpos;
             XView.Size = xviewsize;
 
@@ -161,23 +161,25 @@ namespace WindowsFormsApp1
 
         DataPointCollection VPoints => Series["v"].Points;
 
+
         /// <summary>
         /// Add point. Last date first in.
         /// </summary>
         public void AddPoint(string date, int h, int l, int o, int c, int v)
         {
-            Assert(h >= l);
-            Assert(h >= o);
-            Assert(h >= c);
-            Assert(l <= o);
-            Assert(l <= c);
-            Assert(l > 0);
-            Assert(v >= 0);
+            Assert(h >= l, $"h {h} >= l {l}");
+            Assert(h >= o, $"h {h} >= o {o}");
+            Assert(h >= c, $"h {h} >= c {c}");
+            Assert(l <= o, $"l {l} <= o {o}");
+            Assert(l <= c, $"l {l} <= c {c}");
+            Assert(l > 0, $"l {l} > 0");
+            Assert(v >= 0, $"{v} >= 0");
             int idx = PPoints.AddXY(date, h, l, o, c);
             DataPoint pPoint = PPoints[idx];
             idx = VPoints.AddXY(date, v);
             DataPoint vPoint = VPoints[idx];
             pPoint.Color = c > o ? Color.Red : Color.Blue;
+
             vPoint.ToolTip = pPoint.ToolTip = $"일자: {date}\n시가: {o:N0}\n고가: {h:N0}\n저가: {l:N0}\n종가: {c:N0}\n거래량: {v:N0}";
         }
 
@@ -205,30 +207,7 @@ namespace WindowsFormsApp1
             }
         }
 
-        ChartArea FindChartArea(Point point)
-        {
-            for (int i = 0; i < ChartAreas.Count; i++)
-            {
-                ChartArea chartArea = ChartAreas[i];
-                ElementPosition pos = chartArea.Position;
-                ElementPosition inpos = chartArea.InnerPlotPosition;
-                float areaX = pos.X * chart1.Width / 100;
-                float areaWidth = pos.Width * chart1.Width / 100;
-                float areaHeight = pos.Height * chart1.Height / 100;
-                float areaY = pos.Y * chart1.Height / 100;
-                float inX = inpos.X * areaWidth / 100;
-                float inY = inpos.Y * areaHeight / 100;
-                float inWidth = inpos.Width * areaWidth / 100;
-                float inHeight = inpos.Height * areaHeight / 100;
-                float plotX = areaX + inX;
-                float plotY = areaY + inY;
-                if (point.X >= plotX && point.Y >= plotY && point.X - plotX <= inWidth && point.Y - plotY <= inHeight)
-                {
-                    return chartArea;
-                }
-            }
-            return null;
-        }
+
 
         static void MovingAverage(DataPointCollection points, DataPointCollection target, int n)
         {
@@ -286,11 +265,9 @@ namespace WindowsFormsApp1
 
         private void trackBar1_Scroll(object sender, EventArgs e)
         {
-            if (PPointsCount > 0)
-            {
-                SetXViewSizeSafely(trackBar1.Value);
-                preferredXViewSize = trackBar1.Value;
-            }
+            if (PPointsCount == 0) return;
+            SetXViewSizeSafely(trackBar1.Value);
+            preferredXViewSize = trackBar1.Value;
         }
 
         int preferredXViewSize = -1;
@@ -312,22 +289,21 @@ namespace WindowsFormsApp1
         }
         private void chart1_SelectionRangeChanged(object sender, CursorEventArgs e)
         {
-            if (PPointsCount > 0)
+            if (PPointsCount == 0) return;
+
+            if (leftflag)
             {
-                if (leftflag)
-                {
-                    XViewPos = AxisXMin;
-                    XViewSize = PPointsCount;
-                    preferredXViewSize = -1;
-                    leftflag = false;
-                }
-                else
-                    preferredXViewSize = XViewSize;
-                UpdateTrackBar();
-                UpdateScrollBar();
-                UpdateTextBox();
-                UpdateYViews();
+                SetXViewPosSize(AxisXMin, PPointsCount);
+                preferredXViewSize = -1;
+                leftflag = false;
             }
+            else
+                preferredXViewSize = XViewSize;
+
+            UpdateTrackBar();
+            UpdateScrollBar();
+            UpdateTextBox();
+            UpdateYViews();
         }
 
         private void textBox1_KeyPress(object sender, KeyPressEventArgs e)
@@ -360,6 +336,31 @@ namespace WindowsFormsApp1
             }
         }
 
+        ChartArea FindChartArea(Point point)
+        {
+            for (int i = 0; i < ChartAreas.Count; i++)
+            {
+                ChartArea chartArea = ChartAreas[i];
+                ElementPosition pos = chartArea.Position;
+                ElementPosition inpos = chartArea.InnerPlotPosition;
+                float areaX = pos.X * chart1.Width / 100;
+                float areaWidth = pos.Width * chart1.Width / 100;
+                float areaHeight = pos.Height * chart1.Height / 100;
+                float areaY = pos.Y * chart1.Height / 100;
+                float inX = inpos.X * areaWidth / 100;
+                float inY = inpos.Y * areaHeight / 100;
+                float inWidth = inpos.Width * areaWidth / 100;
+                float inHeight = inpos.Height * areaHeight / 100;
+                float plotX = areaX + inX;
+                float plotY = areaY + inY;
+                if (point.X >= plotX && point.Y >= plotY && point.X - plotX <= inWidth && point.Y - plotY <= inHeight)
+                {
+                    return chartArea;
+                }
+            }
+            return null;
+        }
+
         private void chart1_MouseMove(object sender, MouseEventArgs e)
         {
             Point location = e.Location;
@@ -378,7 +379,7 @@ namespace WindowsFormsApp1
                     yLabel.Text = ypos.ToString("N0");
                     yLabel.Top = chart1.Top + e.Y - yLabel.Height / 2;
                     yLabel.Visible = true;
-
+                    
                     ElementPosition pos = chartArea.Position;
                     ElementPosition inpos = chartArea.InnerPlotPosition;
                     float areaX = pos.X * chart1.Width / 100;
@@ -388,6 +389,7 @@ namespace WindowsFormsApp1
                     float plotX = areaX + inX;
                     yLabel.Left = chart1.Left + (int)(plotX + inWidth) + 9;
                 }
+
             }
             else
                 HideCursors();

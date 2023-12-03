@@ -44,7 +44,6 @@
             this.button1 = new System.Windows.Forms.Button();
             this.button2 = new System.Windows.Forms.Button();
             this.yLabel = new System.Windows.Forms.Label();
-            this.label2 = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.chart1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackBar1)).BeginInit();
             this.SuspendLayout();
@@ -190,30 +189,18 @@
             this.yLabel.AutoSize = true;
             this.yLabel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(223)))), ((int)(((byte)(114)))));
             this.yLabel.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.yLabel.Location = new System.Drawing.Point(775, 442);
+            this.yLabel.Location = new System.Drawing.Point(767, 432);
             this.yLabel.Name = "yLabel";
             this.yLabel.Size = new System.Drawing.Size(45, 14);
             this.yLabel.TabIndex = 6;
             this.yLabel.Text = "yLabel";
             this.yLabel.Visible = false;
             // 
-            // label2
-            // 
-            this.label2.AutoSize = true;
-            this.label2.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(223)))), ((int)(((byte)(114)))));
-            this.label2.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.label2.Location = new System.Drawing.Point(382, 448);
-            this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(45, 14);
-            this.label2.TabIndex = 7;
-            this.label2.Text = "xLabel";
-            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(875, 654);
-            this.Controls.Add(this.label2);
             this.Controls.Add(this.yLabel);
             this.Controls.Add(this.button2);
             this.Controls.Add(this.button1);
@@ -242,6 +229,5 @@
         private System.Windows.Forms.Button button1;
         private System.Windows.Forms.Button button2;
         private System.Windows.Forms.Label yLabel;
-        private System.Windows.Forms.Label label2;
     }
 }
