@@ -31,11 +31,11 @@ namespace WindowsFormsApp1
             string[] lines = File.ReadAllLines(csvfilename);
             foreach(string line in lines)
             {
-                string[] tokens = line.Split();
-                if(tokens.Length >= 5)
+                string[] tokens = line.Split('\t');
+                if(tokens.Length >= 11)
                 {
                     if (tokens[0].Length > 0)
-                        AddPoint(tokens[0], Parse(tokens[2]), Parse(tokens[3]), Parse(tokens[1]), Parse(tokens[4]));
+                        AddPoint(tokens[0], Parse(tokens[2]), Parse(tokens[3]), Parse(tokens[1]), Parse(tokens[4]), Parse(tokens[10]));
                 }
             }
             EndAddingPoints();
@@ -62,29 +62,40 @@ namespace WindowsFormsApp1
         SeriesCollection Series => chart1.Series;
         Series PSeries => Series["p"];
         DataPointCollection PPoints => PSeries.Points;
-        ChartArea ChartArea => chart1.ChartAreas[0];
-        Axis AxisX => ChartArea.AxisX;
-        AxisScaleView XView => AxisX.ScaleView;
+        ChartAreaCollection ChartAreas => chart1.ChartAreas;
+        ChartArea PChartArea => ChartAreas["p"];
+        ChartArea VChartArea => ChartAreas["v"];
+        Axis PAxisX => PChartArea.AxisX;
+        AxisScaleView XView => PAxisX.ScaleView;
+
+        Axis VAxisX => VChartArea.AxisX;
+
         double AxisXMin
         {
             get
             {
-                if (double.IsNaN(AxisX.Minimum))
+                if (double.IsNaN(PAxisX.Minimum))
                     return 0;
-                return AxisX.Minimum;
+                return PAxisX.Minimum;
             }
-            set => AxisX.Minimum = value;
+            set
+            {
+                VAxisX.Minimum = PAxisX.Minimum = value;
+            }
         }
 
         double AxisXMax
         {
             get
             {
-                if (double.IsNaN(AxisX.Maximum))
+                if (double.IsNaN(PAxisX.Maximum))
                     return 0;
-                return AxisX.Maximum;
+                return PAxisX.Maximum;
             }
-            set => AxisX.Maximum = value;
+            set
+            {
+                VAxisX.Maximum = PAxisX.Maximum = value;
+            }
         }
 
         double AxisXSize => AxisXMax - AxisXMin;
@@ -109,7 +120,7 @@ namespace WindowsFormsApp1
             XView.Position = xviewpos;
             XView.Size = xviewsize;
 
-            UpdateYView();
+            UpdateYViews();
             UpdateScrollBar();
             UpdateTrackBar();
             UpdateTextBox();
@@ -147,10 +158,12 @@ namespace WindowsFormsApp1
             }
         }
 
+        DataPointCollection VPoints => Series["v"].Points;
+
         /// <summary>
         /// Add point. Last date first in.
         /// </summary>
-        public void AddPoint(string date, int h, int l, int o, int c)
+        public void AddPoint(string date, int h, int l, int o, int c, int v)
         {
             Assert(h >= l);
             Assert(h >= o);
@@ -158,7 +171,9 @@ namespace WindowsFormsApp1
             Assert(l <= o);
             Assert(l <= c);
             Assert(l > 0);
+            Assert(v >= 0);
             int idx = PPoints.AddXY(date, h, l, o, c);
+            VPoints.AddXY(date, v);
             DataPoint point = PPoints[idx];
             point.Color = c > o ? Color.Red : Color.Blue;
         }
@@ -179,8 +194,33 @@ namespace WindowsFormsApp1
             MovingAverage(Series["20"].Points, PPoints, 20);
             MovingAverage(Series["60"].Points, PPoints, 60);
             MovingAverage(Series["120"].Points, PPoints, 120);
-            UpdateYView();
+            UpdateYViews();
             SetXViewSizeSafely(preferredXViewSize);
+        }
+
+        ChartArea FindChartArea(Point point)
+        {
+            for (int i = 0; i < ChartAreas.Count; i++)
+            {
+                ChartArea chartArea = ChartAreas[i];
+                ElementPosition pos = chartArea.Position;
+                ElementPosition inpos = chartArea.InnerPlotPosition;
+                float areaX = pos.X * chart1.Width / 100;
+                float areaWidth = pos.Width * chart1.Width / 100;
+                float areaHeight = pos.Height * chart1.Height / 100;
+                float areaY = pos.Y * chart1.Height / 100;
+                float inX = inpos.X * areaWidth / 100;
+                float inY = inpos.Y * areaHeight / 100;
+                float inWidth = inpos.Width * areaWidth / 100;
+                float inHeight = inpos.Height * areaHeight / 100;
+                float plotX = areaX + inX;
+                float plotY = areaY + inY;
+                if (point.X >= plotX && point.Y >= plotY && point.X - plotX <= inWidth && point.Y - plotY <= inHeight)
+                {
+                    return chartArea;
+                }
+            }
+            return null;
         }
 
         static void MovingAverage(DataPointCollection points, DataPointCollection target, int n)
@@ -279,7 +319,7 @@ namespace WindowsFormsApp1
                 UpdateTrackBar();
                 UpdateScrollBar();
                 UpdateTextBox();
-                UpdateYView();
+                UpdateYViews();
             }
         }
 
@@ -313,20 +353,31 @@ namespace WindowsFormsApp1
             }
         }
 
-        Cursor CursorX => ChartArea.CursorX;
-        Cursor CursorY => ChartArea.CursorY;
-
         private void chart1_MouseMove(object sender, MouseEventArgs e)
         {
             Point location = e.Location;
-            CursorX.SetCursorPixelPosition(location, true);
-            CursorY.SetCursorPixelPosition(location, true);
+            ChartArea chartArea = FindChartArea(location);
+            if(chartArea != null)
+            {
+                chartArea.CursorX.SetCursorPixelPosition(location, true);
+                chartArea.CursorY.SetCursorPixelPosition(location, true);
+            }
+            else
+                HideCursors();
+        }
+
+        void HideCursors()
+        {
+            foreach(var chartArea in ChartAreas)
+            {
+                chartArea.CursorX.SetCursorPosition(double.NegativeInfinity);
+                chartArea.CursorY.SetCursorPosition(double.NegativeInfinity);
+            }
         }
 
         private void chart1_MouseLeave(object sender, EventArgs e)
         {
-            CursorX.SetCursorPosition(double.NegativeInfinity);
-            CursorY.SetCursorPosition(double.NegativeInfinity);
+            HideCursors();
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -354,23 +405,34 @@ namespace WindowsFormsApp1
         }
 
 
-        Axis AxisY => ChartArea.AxisY;
-        AxisScaleView YView => AxisY.ScaleView;
-        IEnumerable<DataPoint> ViewPoints => PPoints.Skip((int)XViewPos).Take(XViewSize);
-        double ViewPointsMin => ViewPoints.Min(x => x.YValues[L]);
-        double ViewPointsMax => ViewPoints.Max(x => x.YValues[H]);
+        Axis PAxisY => PChartArea.AxisY;
+        AxisScaleView PYView => PAxisY.ScaleView;
+        IEnumerable<DataPoint> PViewPoints => PPoints.Skip((int)XViewPos).Take(XViewSize);
+        double PViewPointsMin => PViewPoints.Min(x => x.YValues[L]);
+        double PViewPointsMax => PViewPoints.Max(x => x.YValues[H]);
 
-        void UpdateYView()
+        void UpdatePYView()
         {
-            double y2viewmin = ViewPointsMin * 0.9;
-            double y2viewmax = ViewPointsMax * 1.1;
-            YView.Position = y2viewmin;
-            YView.Size = y2viewmax - y2viewmin;
+            double min = PViewPointsMin * 0.9;
+            double max = PViewPointsMax * 1.1;
+            PYView.Position = min;
+            PYView.Size = max - min;
         }
+        Axis VAxisY => VChartArea.AxisY;
+        AxisScaleView VYView => VAxisY.ScaleView;
 
-        private void timer1_Tick(object sender, EventArgs e)
+        IEnumerable<DataPoint> VViewPoints => VPoints.Skip((int)XViewPos).Take(XViewSize);
+        double VViewPointsMax => VViewPoints.Max(x => x.YValues[0]);
+        void UpdateVYView()
         {
-            Console.WriteLine(preferredXViewSize);
+            VYView.Size = VViewPointsMax * 1.1;
         }
+        void UpdateYViews()
+        {
+            UpdatePYView();
+            UpdateVYView();
+        }
+       
+
     }
 }
