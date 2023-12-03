@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -27,6 +28,8 @@ namespace WindowsFormsApp1
             InitializeComponent();
         }
 
+        readonly List<string> dates = new List<string>();
+
         public void AddAllPointsByFile(string csvfilename)
         {
             Clear();
@@ -40,13 +43,14 @@ namespace WindowsFormsApp1
                         AddPoint(tokens[0], Parse(tokens[2]), Parse(tokens[3]), Parse(tokens[1]), Parse(tokens[4]), Parse(tokens[10]));
                 }
             }
-            EndAddingPoints();
+            EndAddingPoints("스킨앤스킨", "005931");
         }
 
         public void Clear()
         {
             foreach(var a in Series)
                 a.Points.Clear();
+            dates.Clear();
         }
 
         static int Parse(string s)
@@ -68,8 +72,8 @@ namespace WindowsFormsApp1
         ChartArea VChartArea => ChartAreas["v"];
         Axis PAxisX => PChartArea.AxisX;
         AxisScaleView XView => PAxisX.ScaleView;
-
         Axis VAxisX => VChartArea.AxisX;
+        public AnnotationCollection Annotations => chart1.Annotations;
 
         double AxisXMin
         {
@@ -178,8 +182,8 @@ namespace WindowsFormsApp1
             DataPoint pPoint = PPoints[idx];
             idx = VPoints.AddXY(date, v);
             DataPoint vPoint = VPoints[idx];
-            pPoint.Color = c > o ? Color.Red : Color.Blue;
-
+            if (c > o) pPoint.Color = Color.Red;
+            dates.Add(date);
             vPoint.ToolTip = pPoint.ToolTip = $"일자: {date}\n시가: {o:N0}\n고가: {h:N0}\n저가: {l:N0}\n종가: {c:N0}\n거래량: {v:N0}";
         }
 
@@ -187,7 +191,7 @@ namespace WindowsFormsApp1
         /// <summary>
         /// Call me when all points were added.
         /// </summary>
-        public void EndAddingPoints()
+        public void EndAddingPoints(string jmname, string jmcode)
         {
             hScrollBar1.Maximum = PPointsCount - 1;
             hScrollBar1.LargeChange = trackBar1.Value = trackBar1.Maximum = PPointsCount;
@@ -201,10 +205,51 @@ namespace WindowsFormsApp1
             MovingAverage(Series["60"].Points, PPoints, 60);
             MovingAverage(Series["120"].Points, PPoints, 120);
             UpdateYViews();
-            if (preferflag)
+
+            for(int i = 0; i < PPointsCount; i++)
             {
-                SetXViewSizeSafely(preferredXViewSize);
+                double[] yvalues = PPoints[i].YValues;
+                double h = yvalues[H];
+                double l = yvalues[L];
+                double o = yvalues[O];
+                double c = yvalues[C];
+                double v = VPoints[i].YValues[0];
+                DataPoint vpoint = VPoints[i];
+                double pc = c;
+                double pv = v;
+                string date = dates[i];
+
+                if (i+1 < PPointsCount)
+                {
+                    pv = VPoints[i + 1].YValues[0];
+                    pc = PPoints[i + 1].YValues[C];
+                }
+
+                double hc = h / pc - 1;
+                double lc = l / pc - 1;
+                double oc = o / pc - 1;
+                double cc = c / pc - 1;
+                double vc;
+                if(pv == 0)
+                    vc = 0;
+                else
+                    vc = v / pv;
+
+                if(i == PPointsCount - 1)
+                    hc = lc = oc = cc = vc = 0;
+
+                string toolTip = $"일자: {date}\n{jmname}({jmcode})\n시가: {o:N0} ({oc:P2})\n고가: {h:N0} ({hc:P2})\n" +
+                    $"저가: {l:N0} ({lc:P2})\n종가: {c:N0} ({cc:P2})\n거래량: {v:N0} ({vc:P2})";
+                if (pv < v) vpoint.Color = Color.Red;
+                foreach (var s in Series)
+                {
+                    if(i < s.Points.Count)
+                        s.Points[i].ToolTip = toolTip;
+                }
             }
+
+            if (preferflag)
+                SetXViewSizeSafely(preferredXViewSize);
         }
 
 
@@ -275,10 +320,10 @@ namespace WindowsFormsApp1
         void UpdateTrackBar()
         {
             trackBar1.Value = XViewSize;
-            toolTip.SetToolTip(trackBar1, XViewSize.ToString());
+            __trackBarToolTip.SetToolTip(trackBar1, XViewSize.ToString());
         }
 
-        readonly ToolTip toolTip = new ToolTip();
+        readonly ToolTip __trackBarToolTip = new ToolTip();
 
         bool leftflag;
         private void chart1_SelectionRangeChanging(object sender, CursorEventArgs e)
@@ -462,7 +507,6 @@ namespace WindowsFormsApp1
             UpdatePYView();
             UpdateVYView();
         }
-       
 
     }
 }
