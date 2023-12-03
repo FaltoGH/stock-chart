@@ -72,6 +72,7 @@
             chartArea2.AxisX.IsReversed = true;
             chartArea2.AxisX.MajorGrid.LineColor = System.Drawing.Color.Gainsboro;
             chartArea2.AxisX.ScrollBar.Enabled = false;
+            chartArea2.AxisY.LabelStyle.Format = "#,##0,K";
             chartArea2.AxisY.MajorGrid.LineColor = System.Drawing.Color.Gainsboro;
             chartArea2.AxisY.ScrollBar.Enabled = false;
             chartArea2.CursorX.AutoScroll = false;

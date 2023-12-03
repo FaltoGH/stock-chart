@@ -10,7 +10,6 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Windows.Forms.DataVisualization.Charting;
-using Cursor = System.Windows.Forms.DataVisualization.Charting.Cursor;
 
 namespace WindowsFormsApp1
 {
@@ -53,10 +52,9 @@ namespace WindowsFormsApp1
         }
 
 
-        static void Assert(bool x, string msg=null)
+        static void Assert(bool x)
         {
-            if (!x)
-                throw new Exception("Assertion failed: " + msg);
+            if (!x) throw new Exception();
         }
 
         SeriesCollection Series => chart1.Series;
@@ -173,9 +171,11 @@ namespace WindowsFormsApp1
             Assert(l > 0);
             Assert(v >= 0);
             int idx = PPoints.AddXY(date, h, l, o, c);
-            VPoints.AddXY(date, v);
-            DataPoint point = PPoints[idx];
-            point.Color = c > o ? Color.Red : Color.Blue;
+            DataPoint pPoint = PPoints[idx];
+            idx = VPoints.AddXY(date, v);
+            DataPoint vPoint = VPoints[idx];
+            pPoint.Color = c > o ? Color.Red : Color.Blue;
+            vPoint.ToolTip = pPoint.ToolTip = $"일자: {date}\n시가: {o:N0}\n고가: {h:N0}\n저가: {l:N0}\n종가: {c:N0}\n거래량: {v:N0}";
         }
 
         /// <summary>
