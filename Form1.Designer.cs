@@ -285,7 +285,6 @@
             this.ClientSize = new System.Drawing.Size(875, 654);
             this.Controls.Add(this.yLabel);
             this.Controls.Add(this.tableLayoutPanel1);
-            this.KeyPreview = true;
             this.Name = "Form1";
             this.Text = "Form1";
             ((System.ComponentModel.ISupportInitialize)(this.chart1)).EndInit();

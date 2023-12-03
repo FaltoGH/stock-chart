@@ -14,7 +14,7 @@ using System.Windows.Forms.DataVisualization.Charting;
 
 namespace WindowsFormsApp1
 {
-    public partial class Form1 : Form
+    public partial class Form1 : UserControl
     {
         const byte H = 0;
         const byte L = 1;
