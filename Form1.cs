@@ -169,7 +169,7 @@ namespace WindowsFormsApp1
         /// <summary>
         /// Add point. Last date first in.
         /// </summary>
-        public void AddPoint(string date, int h, int l, int o, int c, int v)
+        public void AddPoint(string date, int h, int l, int o, int c, long v)
         {
             Assert(h >= l, $"h {h} >= l {l}");
             Assert(h >= o, $"h {h} >= o {o}");
